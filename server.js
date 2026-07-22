@@ -20,7 +20,7 @@ app.get('/stream', async (req, res) => {
       '-o', '-',
       '--no-warnings',
       '--no-playlist',
-      '--no-check-certificates',
+      '--extractor-args', 'youtube:player_client=web_creator,mediaconnect',
       videoURL,
     ], { timeout: 60000 });
 
