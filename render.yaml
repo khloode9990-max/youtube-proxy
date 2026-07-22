@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: youtube-proxy
+    runtime: node
+    buildCommand: npm install && bash setup.sh
+    startCommand: npm start
