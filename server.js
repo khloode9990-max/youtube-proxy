@@ -5,6 +5,7 @@ const ytdl = require('@distube/ytdl-core');
 const app = express();
 app.use(cors());
 
+// Stream audio through the proxy (avoids YouTube IP restrictions)
 app.get('/stream', async (req, res) => {
   const videoId = req.query.id;
   if (!videoId) {
@@ -20,14 +21,34 @@ app.get('/stream', async (req, res) => {
       return res.status(404).json({ error: 'No audio streams found' });
     }
 
-    res.json({
-      success: true,
-      streamUrl: audioFormats[0].url,
-      title: info.videoDetails.title,
+    // Return metadata as JSON for the first request
+    if (req.query.meta === '1') {
+      return res.json({
+        success: true,
+        title: info.videoDetails.title,
+      });
+    }
+
+    // Stream the audio directly through the proxy
+    const stream = ytdl(videoURL, { filter: 'audioonly', quality: 'highestaudio' });
+
+    res.setHeader('Content-Type', audioFormats[0].mimeType || 'audio/webm');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    stream.pipe(res);
+
+    stream.on('error', (err) => {
+      console.error('Stream error:', err.message);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Stream failed' });
+      }
     });
   } catch (error) {
     console.error('Error:', error.message);
-    res.status(500).json({ error: 'Failed to extract stream' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to extract stream' });
+    }
   }
 });
 
