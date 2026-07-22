@@ -1,21 +1,12 @@
 const express = require('express');
 const cors = require('cors');
-const { execFile, spawn } = require('child_process');
+const { spawn } = require('child_process');
 const path = require('path');
 
 const app = express();
 app.use(cors());
 
 const YTDLP = path.join(__dirname, 'yt-dlp');
-
-function runYtdlp(args) {
-  return new Promise((resolve, reject) => {
-    execFile(YTDLP, args, { timeout: 30000, maxBuffer: 1024 * 1024 }, (err, stdout, stderr) => {
-      if (err) reject(new Error(stderr || err.message));
-      else resolve(stdout.trim());
-    });
-  });
-}
 
 app.get('/stream', async (req, res) => {
   const videoId = req.query.id;
@@ -24,16 +15,12 @@ app.get('/stream', async (req, res) => {
   const videoURL = `https://www.youtube.com/watch?v=${videoId}`;
 
   try {
-    if (req.query.meta === '1') {
-      const title = await runYtdlp(['--get-title', '--no-warnings', videoURL]);
-      return res.json({ success: true, title: title || 'YouTube Audio' });
-    }
-
     const proc = spawn(YTDLP, [
       '-f', 'bestaudio',
       '-o', '-',
       '--no-warnings',
       '--no-playlist',
+      '--no-check-certificates',
       videoURL,
     ], { timeout: 60000 });
 
